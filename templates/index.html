@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Face Detection App</title>
+  
+  <!-- Face API JS CDN -->
+  <script defer src="https://unpkg.com/face-api.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0077ff, #00d4ff);
+      color: white;
+      text-align: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 20px;
+      font-size: 1.8rem;
+      font-weight: bold;
+      background: rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: calc(100vh - 80px);
+    }
+
+    #video {
+      border: 4px solid white;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 1.2rem;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <header>👀 Face Detection Website</header>
+  <main>
+    <video id="video" width="640" height="480" autoplay muted></video>
+    <div id="status">Loading models... Please wait</div>
+  </main>
+
+  <script>
+    const video = document.getElementById('video');
+    const status = document.getElementById('status');
+
+    // Load models from face-api.js
+    Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+    ]).then(startVideo);
+
+    function startVideo() {
+      navigator.mediaDevices.getUserMedia({ video: {} })
+        .then(stream => {
+          video.srcObject = stream;
+          status.textContent = "Camera started! Detecting faces...";
+        })
+        .catch(err => {
+          console.error(err);
+          status.textContent = "Error accessing webcam!";
+        });
+    }
+
+    video.addEventListener('play', () => {
+      const canvas = faceapi.createCanvasFromMedia(video);
+      document.body.append(canvas);
+      const displaySize = { width: video.width, height: video.height };
+      faceapi.matchDimensions(canvas, displaySize);
+
+      setInterval(async () => {
+        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+        const resized = faceapi.resizeResults(detections, displaySize);
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        faceapi.draw.drawDetections(canvas, resized);
+      }, 100);
+    });
+  </script>
+</body>
+</html>
